@@ -279,9 +279,31 @@ def make_gating_node(workflow, datafind_files, outdir=None, tags=None):
     return condition_strain_nodes, condition_strain_outs
 
 
-def get_sky_grid_scale(sky_error, sigma_sys=6.8359):
+def get_sky_grid_scale(sky_error, sigma_sys=6.8359, prob=0.9):
     """
-    Calculate suitable 3-sigma radius of the search patch, incorporating Fermi
-    GBM systematic if necessary.
+    Calculate the angular radius corresponding to a desired localization
+    uncertainty level. This is used to generate the search grid and involves
+    scaling up the standard 1-sigma value provided to the workflow, assuming
+    a normal probability profile. The default systematic error value is set for
+    Fermi-GBM and the default probability coverage is 90%.
+
+    Parameters
+    ----------
+    sky_error : float
+        The reported 1-sigma sky error of the trigger.
+    sigma_sys : float
+        An additional systematic component of the sky error to be incorporated.
+        Default value is for Fermi-GBM systematic.
+    prob : float
+        The desired localization probability to be covered by the sky grid,
+        assuming a normal probability profile.
+
+    Returns
+    _______
+
+    float
+        Sky error radius in degrees.
     """
-    return 1.65 * (sky_error**2 + sigma_sys**2)**0.5
+    from scipy.stats import norm
+    scale = norm.interval(prob)[-1]
+    return scale * (sky_error**2 + sigma_sys**2)**0.5
