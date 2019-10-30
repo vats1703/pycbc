@@ -308,10 +308,3 @@ def get_sky_grid_scale(stat_err=0.0,sigma_sys=True,core_sigma=3.6,core_frac=0.98
                 diff=diff_tmp
                 r_90=r
 
-
-#def get_sky_grid_scale(sky_error, sigma_sys=6.8359):
-#    """
-#    Calculate suitable 3-sigma radius of the search patch, incorporating Fermi
-#    GBM systematic if necessary.
-#    """
-#    return 1.65 * (sky_error**2 + sigma_sys**2)**0.5
