@@ -31,6 +31,7 @@ http://pycbc.org/pycbc/latest/html/workflow.html
 from __future__ import print_function
 import sys
 import os
+import numpy as np
 import shutil
 import urlparse, urllib
 from glue import segments
@@ -278,10 +279,39 @@ def make_gating_node(workflow, datafind_files, outdir=None, tags=None):
 
     return condition_strain_nodes, condition_strain_outs
 
+def get_sky_grid_scale(stat_err=0.0,sigma_sys=True,core_sigma=3.6,core_frac=0.98,tail_sigma=29.6,containment=0.9,precision=1000):
+    '''
+       updated systematic error for Fermi-GBM alerts using https://arxiv.org/abs/1909.03006. 
+       Default values are used for GRBs before update (Sept 11th 2019)
+       
+       sigma_sys==0 for Swift GRBs which do not require this correction. 
+    '''
+    if sigma_sys==0.0 or sigma_sys==False:
+        return 1.65*stat_error
+    else:
+        stat_sigma = stat_err / np.sqrt(-2 * np.log(0.32))
+        tail_frac = 1.0 - core_frac
+        s1 = np.sqrt(stat_sigma**2 + core_sigma**2)
+        s2 = np.sqrt(stat_sigma**2 + tail_sigma**2)
+        def approx_stat_plus_sys_cdf(r):
+            part1 = core_frac * (1 - np.exp(-0.5 * (r / s1)**2))
+            part2 = tail_frac * (1 - np.exp(-0.5 * (r / s2)**2))
+            return part1 + part2
+        diff=containment
+        for r in np.linspace(stat_err*0.5, stat_err*2.0, precision):
+            p = approx_stat_plus_sys_cdf(r)
+            diff_tmp=np.abs(containment-p)
+            if diff_tmp>diff:
+                return r_90
+                break
+            else:
+                diff=diff_tmp
+                r_90=r
 
-def get_sky_grid_scale(sky_error, sigma_sys=6.8359):
-    """
-    Calculate suitable 3-sigma radius of the search patch, incorporating Fermi
-    GBM systematic if necessary.
-    """
-    return 1.65 * (sky_error**2 + sigma_sys**2)**0.5
+
+#def get_sky_grid_scale(sky_error, sigma_sys=6.8359):
+#    """
+#    Calculate suitable 3-sigma radius of the search patch, incorporating Fermi
+#    GBM systematic if necessary.
+#    """
+#    return 1.65 * (sky_error**2 + sigma_sys**2)**0.5
