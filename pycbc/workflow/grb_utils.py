@@ -279,24 +279,32 @@ def make_gating_node(workflow, datafind_files, outdir=None, tags=None):
     return condition_strain_nodes, condition_strain_outs
 
 
-def get_sky_grid_scale(sky_error, sigma_sys=6.8359, prob=0.9):
+def get_sky_grid_scale(stat_sigma=0.0, Fermi=False, core_sigma=3.6,
+                       core_frac=0.98, tail_sigma=29.6, containment=0.9,
+                       precision=1000):
     """
     Calculate the angular radius corresponding to a desired localization
     uncertainty level. This is used to generate the search grid and involves
     scaling up the standard 1-sigma value provided to the workflow, assuming
-    a normal probability profile. The default systematic error value is set for
-    Fermi-GBM and the default probability coverage is 90%.
+    a normal probability profile. Fermi systematic errors can be included,
+    following https://arxiv.org/abs/1909.03006, with default values valid
+    before 11 September 2019. The default probability coverage is 90%.
 
     Parameters
     ----------
-    sky_error : float
-        The reported 1-sigma sky error of the trigger.
-    sigma_sys : float
-        An additional systematic component of the sky error to be incorporated.
-        Default value is for Fermi-GBM systematic.
-    prob : float
-        The desired localization probability to be covered by the sky grid,
-        assuming a normal probability profile.
+    stat_sigma : float
+        The reported statistical 1-sigma sky error of the trigger.
+    Fermi : bool
+        Whether to apply Fermi-GBM systematics. Default = False.
+    core_sigma : float
+        Size of the GBM systematic core component.
+    core_frac : float
+        Fraction of the systematic uncertainty contained within the core
+        component.
+    tail_sigma : float
+        Size of the GBM systematic tail component.
+    containment : float
+        The desired localization probability to be covered by the sky grid.
 
     Returns
     _______
@@ -304,6 +312,24 @@ def get_sky_grid_scale(sky_error, sigma_sys=6.8359, prob=0.9):
     float
         Sky error radius in degrees.
     """
-    from scipy.stats import norm
-    scale = norm.interval(prob)[-1]
-    return scale * (sky_error**2 + sigma_sys**2)**0.5
+    if Fermi:
+        r = np.linspace(stat_sigma*0.5, stat_sigma*4.0, precision)
+        stat_sigma /= np.sqrt(-2 * np.log(0.32))
+        tail_frac = 1.0 - core_frac
+        s1 = np.sqrt(stat_sigma**2 + core_sigma**2)
+        s2 = np.sqrt(stat_sigma**2 + tail_sigma**2)
+        part1 = core_frac * (1 - np.exp(-0.5 * (r / s1)**2))
+        part2 = tail_frac * (1 - np.exp(-0.5 * (r / s2)**2))
+
+        return r[(np.abs(part1 + part2 - containment)).argmin()]
+
+    else:
+        # Use Rayleigh distribution to go from 1 sigma containment to containment
+        # given by function variable. interval method returns bounds of equal
+        # probability about the median, but we want 1-sided bound, hence
+        # use (2 * containment - 1)
+        from scipy.stats import rayleigh
+        scale = rayleigh.interval(2 * containment - 1)[-1]
+
+        return scale * stat_sigma
+
