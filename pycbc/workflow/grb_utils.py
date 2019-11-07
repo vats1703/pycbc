@@ -325,7 +325,6 @@ def get_sky_grid_scale(sky_error=0.0, Fermi=False, upscale=False,
         s2 = np.sqrt(sky_error**2 + tail_sigma**2)
         part1 = core_frac * (1 - np.exp(-0.5 * (r / s1)**2))
         part2 = tail_frac * (1 - np.exp(-0.5 * (r / s2)**2))
-
         return r[(np.abs(part1 + part2 - containment)).argmin()]
 
     else:
@@ -335,7 +334,5 @@ def get_sky_grid_scale(sky_error=0.0, Fermi=False, upscale=False,
         # use (2 * containment - 1)
         from scipy.stats import rayleigh
 	if upscale: scale = rayleigh.interval(2 * containment - 1)[-1]
-        else: scale=1.0
-
+	else: scale = 1.0
         return scale * sky_error
-
