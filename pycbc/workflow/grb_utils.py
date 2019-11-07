@@ -34,6 +34,7 @@ import os
 import numpy as np
 import shutil
 import urlparse, urllib
+import numpy as np
 from glue import segments
 from pycbc.ligolw import ligolw, lsctables, utils, ilwd
 from pycbc.workflow.core import File, FileList, resolve_url
@@ -279,32 +280,61 @@ def make_gating_node(workflow, datafind_files, outdir=None, tags=None):
 
     return condition_strain_nodes, condition_strain_outs
 
-def get_sky_grid_scale(stat_err=0.0,sigma_sys=True,core_sigma=3.6,core_frac=0.98,tail_sigma=29.6,containment=0.9,precision=1000):
-    '''
-       updated systematic error for Fermi-GBM alerts using https://arxiv.org/abs/1909.03006. 
-       Default values are used for GRBs before update (Sept 11th 2019)
-       
-       sigma_sys==0 for Swift GRBs which do not require this correction. 
-    '''
-    if sigma_sys==0.0 or sigma_sys==False:
-        return 1.65*stat_error
-    else:
-        stat_sigma = stat_err / np.sqrt(-2 * np.log(0.32))
-        tail_frac = 1.0 - core_frac
-        s1 = np.sqrt(stat_sigma**2 + core_sigma**2)
-        s2 = np.sqrt(stat_sigma**2 + tail_sigma**2)
-        def approx_stat_plus_sys_cdf(r):
-            part1 = core_frac * (1 - np.exp(-0.5 * (r / s1)**2))
-            part2 = tail_frac * (1 - np.exp(-0.5 * (r / s2)**2))
-            return part1 + part2
-        diff=containment
-        for r in np.linspace(stat_err*0.5, stat_err*2.0, precision):
-            p = approx_stat_plus_sys_cdf(r)
-            diff_tmp=np.abs(containment-p)
-            if diff_tmp>diff:
-                return r_90
-                break
-            else:
-                diff=diff_tmp
-                r_90=r
 
+def get_sky_grid_scale(sky_error=0.0, Fermi=False, upscale=False, 
+		       core_sigma=3.6, core_frac=0.98, tail_sigma=29.6, 
+		       containment=0.9):
+    """
+    Calculate the angular radius corresponding to a desired localization
+    uncertainty level. This is used to generate the search grid and involves
+    scaling up the standard 1-sigma value provided to the workflow, assuming
+    a normal probability profile. Fermi systematic errors can be included,
+    following https://arxiv.org/abs/1909.03006, with default values valid
+    before 11 September 2019. The default probability coverage is 90%.
+
+    Parameters
+    ----------
+    sky_error : float
+        The reported statistical 1-sigma sky error of the trigger.
+    Fermi : bool
+        Whether to apply Fermi-GBM systematics. Default = False.
+    upscale : bool
+        Whether to apply rescale to convert from 1 sigma -> containment
+        for non-Fermi triggers. Default = True as Swift reports 90% 
+        radius directly.
+    core_sigma : float
+        Size of the GBM systematic core component.
+    core_frac : float
+        Fraction of the systematic uncertainty contained within the core
+        component.
+    tail_sigma : float
+        Size of the GBM systematic tail component.
+    containment : float
+        The desired localization probability to be covered by the sky grid.
+
+    Returns
+    _______
+
+    float
+        Sky error radius in degrees.
+    """
+    if Fermi:
+        r = np.linspace(sky_error*0.5, sky_error*4.0, precision)
+        sky_error /= np.sqrt(-2 * np.log(0.32))
+        tail_frac = 1.0 - core_frac
+        s1 = np.sqrt(sky_error**2 + core_sigma**2)
+        s2 = np.sqrt(sky_error**2 + tail_sigma**2)
+        part1 = core_frac * (1 - np.exp(-0.5 * (r / s1)**2))
+        part2 = tail_frac * (1 - np.exp(-0.5 * (r / s2)**2))
+        return r[(np.abs(part1 + part2 - containment)).argmin()]
+
+    else:
+        # Use Rayleigh distribution to go from 1 sigma containment to containment
+        # given by function variable. interval method returns bounds of equal
+        # probability about the median, but we want 1-sided bound, hence
+        # use (2 * containment - 1)
+        from scipy.stats import rayleigh
+	if upscale: scale = rayleigh.interval(2 * containment - 1)[-1]
+	else: scale = 1.0
+        return scale * sky_error
+>>>>>>> pygrb_skyerror_fix
