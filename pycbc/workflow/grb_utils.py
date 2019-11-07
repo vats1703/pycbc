@@ -31,9 +31,9 @@ http://pycbc.org/pycbc/latest/html/workflow.html
 from __future__ import print_function
 import sys
 import os
-import numpy as np
 import shutil
-import urlparse, urllib
+import urlparse
+import urllib
 import numpy as np
 from glue import segments
 from pycbc.ligolw import ligolw, lsctables, utils, ilwd
@@ -105,7 +105,7 @@ def get_coh_PTF_files(cp, ifos, run_dir, bank_veto=False, summary_files=False):
 
         # Bank veto
         if bank_veto:
-            shutil.copy("%s/lalapps/src/ring/coh_PTF_config_files/" \
+            shutil.copy("%s/lalapps/src/ring/coh_PTF_config_files/"
                         "bank_veto_bank.xml" % lalDir, "%s" % run_dir)
             bank_veto_url = "file://localhost%s/bank_veto_bank.xml" % run_dir
             bank_veto = File(ifos, "bank_veto_bank", sci_seg,
@@ -115,9 +115,9 @@ def get_coh_PTF_files(cp, ifos, run_dir, bank_veto=False, summary_files=False):
 
         if summary_files:
             # summary.js file
-            shutil.copy("%s/lalapps/src/ring/coh_PTF_config_files/" \
+            shutil.copy("%s/lalapps/src/ring/coh_PTF_config_files/"
                         "coh_PTF_html_summary.js" % lalDir, "%s" % run_dir)
-            summary_js_url = "file://localhost%s/coh_PTF_html_summary.js" \
+            summary_js_url = "file://localhost%s/coh_PTF_html_summary.js"
                              % run_dir
             summary_js = File(ifos, "coh_PTF_html_summary_js", sci_seg,
                               file_url=summary_js_url)
@@ -125,9 +125,9 @@ def get_coh_PTF_files(cp, ifos, run_dir, bank_veto=False, summary_files=False):
             file_list.extend(FileList([summary_js]))
 
             # summary.css file
-            shutil.copy("%s/lalapps/src/ring/coh_PTF_config_files/" \
+            shutil.copy("%s/lalapps/src/ring/coh_PTF_config_files/"
                         "coh_PTF_html_summary.css" % lalDir, "%s" % run_dir)
-            summary_css_url = "file://localhost%s/coh_PTF_html_summary.css" \
+            summary_css_url = "file://localhost%s/coh_PTF_html_summary.css"
                               % run_dir
             summary_css = File(ifos, "coh_PTF_html_summary_css", sci_seg,
                                file_url=summary_css_url)
@@ -178,12 +178,12 @@ def make_exttrig_file(cp, ifos, sci_seg, out_dir):
     # Fill in all empty rows
     for entry in cols.keys():
         if not hasattr(row, entry):
-            if cols[entry] in ['real_4','real_8']:
-                setattr(row,entry,0.)
+            if cols[entry] in ['real_4', 'real_8']:
+                setattr(row, entry, 0.)
             elif cols[entry] == 'int_4s':
-                setattr(row,entry,0)
+                setattr(row, entry, 0)
             elif cols[entry] == 'lstring':
-                setattr(row,entry,'')
+                setattr(row, entry, '')
             elif entry == 'process_id':
                 row.process_id = ilwd.ilwdchar("external_trigger:process_id:0")
             elif entry == 'event_id':
@@ -227,9 +227,9 @@ def get_ipn_sky_files(workflow, file_url, tags=None):
     tags = tags or []
     ipn_sky_points = resolve_url(file_url)
     sky_points_url = urlparse.urljoin("file:",
-            urllib.pathname2url(ipn_sky_points))
+                     urllib.pathname2url(ipn_sky_points))
     sky_points_file = File(workflow.ifos, "IPN_SKY_POINTS",
-            workflow.analysis_time, file_url=sky_points_url, tags=tags)
+                      workflow.analysis_time, file_url=sky_points_url, tags=tags)
     sky_points_file.PFN(sky_points_url, site="local")
 
     return sky_points_file
@@ -269,21 +269,21 @@ def make_gating_node(workflow, datafind_files, outdir=None, tags=None):
     condition_strain_nodes = []
     condition_strain_outs = FileList([])
     for ifo in workflow.ifos:
-        input_files = FileList([datafind_file for datafind_file in \
+        input_files = FileList([datafind_file for datafind_file in
                                 datafind_files if datafind_file.ifo == ifo])
         condition_strain_jobs = condition_strain_class(cp, "condition_strain",
-                ifo=ifo, out_dir=outdir, tags=tags)
+                                ifo=ifo, out_dir=outdir, tags=tags)
         condition_strain_node, condition_strain_out = \
-                condition_strain_jobs.create_node(input_files, tags=tags)
+                               condition_strain_jobs.create_node(input_files, tags=tags)
         condition_strain_nodes.append(condition_strain_node)
         condition_strain_outs.extend(FileList([condition_strain_out]))
 
     return condition_strain_nodes, condition_strain_outs
 
 
-def get_sky_grid_scale(sky_error=0.0, Fermi=False, upscale=False, 
-		       core_sigma=3.6, core_frac=0.98, tail_sigma=29.6, 
-		       containment=0.9):
+def get_sky_grid_scale(sky_error=0.0, Fermi=False, upscale=False,
+                       core_sigma=3.6, core_frac=0.98, tail_sigma=29.6,
+                       containment=0.9):
     """
     Calculate the angular radius corresponding to a desired localization
     uncertainty level. This is used to generate the search grid and involves
@@ -300,7 +300,7 @@ def get_sky_grid_scale(sky_error=0.0, Fermi=False, upscale=False,
         Whether to apply Fermi-GBM systematics. Default = False.
     upscale : bool
         Whether to apply rescale to convert from 1 sigma -> containment
-        for non-Fermi triggers. Default = True as Swift reports 90% 
+        for non-Fermi triggers. Default = True as Swift reports 90%
         radius directly.
     core_sigma : float
         Size of the GBM systematic core component.
@@ -329,11 +329,13 @@ def get_sky_grid_scale(sky_error=0.0, Fermi=False, upscale=False,
         return r[(np.abs(part1 + part2 - containment)).argmin()]
 
     else:
-        # Use Rayleigh distribution to go from 1 sigma containment to containment
-        # given by function variable. interval method returns bounds of equal
-        # probability about the median, but we want 1-sided bound, hence
-        # use (2 * containment - 1)
+        # Use Rayleigh distribution to go from 1 sigma containment to
+        # containment given by function variable. interval method
+        # returns bounds of equal probability about the median, but
+        # we want 1-sided bound, hence use (2 * containment - 1)
         from scipy.stats import rayleigh
-	if upscale: scale = rayleigh.interval(2 * containment - 1)[-1]
-	else: scale = 1.0
+        if upscale:
+            scale = rayleigh.interval(2 * containment - 1)[-1]
+        else:
+            scale = 1.0
         return scale * sky_error
