@@ -33,6 +33,7 @@ import sys
 import os
 import shutil
 import urlparse, urllib
+import numpy as np
 from glue import segments
 from pycbc.ligolw import ligolw, lsctables, utils, ilwd
 from pycbc.workflow.core import File, FileList, resolve_url
@@ -279,7 +280,7 @@ def make_gating_node(workflow, datafind_files, outdir=None, tags=None):
     return condition_strain_nodes, condition_strain_outs
 
 
-def get_sky_grid_scale(stat_sigma=0.0, Fermi=False, core_sigma=3.6,
+def get_sky_grid_scale(sky_error=0.0, Fermi=False, upscale=False, core_sigma=3.6,
                        core_frac=0.98, tail_sigma=29.6, containment=0.9,
                        precision=1000):
     """
@@ -292,10 +293,14 @@ def get_sky_grid_scale(stat_sigma=0.0, Fermi=False, core_sigma=3.6,
 
     Parameters
     ----------
-    stat_sigma : float
+    sky_error : float
         The reported statistical 1-sigma sky error of the trigger.
     Fermi : bool
         Whether to apply Fermi-GBM systematics. Default = False.
+    upscale : bool
+        Whether to apply rescale to convert from 1 sigma -> containment
+        for non-Fermi triggers. Default = True as Swift reports 90% 
+        radius directly.
     core_sigma : float
         Size of the GBM systematic core component.
     core_frac : float
@@ -313,11 +318,11 @@ def get_sky_grid_scale(stat_sigma=0.0, Fermi=False, core_sigma=3.6,
         Sky error radius in degrees.
     """
     if Fermi:
-        r = np.linspace(stat_sigma*0.5, stat_sigma*4.0, precision)
-        stat_sigma /= np.sqrt(-2 * np.log(0.32))
+        r = np.linspace(sky_error*0.5, sky_error*4.0, precision)
+        sky_error /= np.sqrt(-2 * np.log(0.32))
         tail_frac = 1.0 - core_frac
-        s1 = np.sqrt(stat_sigma**2 + core_sigma**2)
-        s2 = np.sqrt(stat_sigma**2 + tail_sigma**2)
+        s1 = np.sqrt(sky_error**2 + core_sigma**2)
+        s2 = np.sqrt(sky_error**2 + tail_sigma**2)
         part1 = core_frac * (1 - np.exp(-0.5 * (r / s1)**2))
         part2 = tail_frac * (1 - np.exp(-0.5 * (r / s2)**2))
 
@@ -329,7 +334,8 @@ def get_sky_grid_scale(stat_sigma=0.0, Fermi=False, core_sigma=3.6,
         # probability about the median, but we want 1-sided bound, hence
         # use (2 * containment - 1)
         from scipy.stats import rayleigh
-        scale = rayleigh.interval(2 * containment - 1)[-1]
+	if upscale: scale = rayleigh.interval(2 * containment - 1)[-1]
+        else: scale=1.0
 
-        return scale * stat_sigma
+        return scale * sky_error
 
