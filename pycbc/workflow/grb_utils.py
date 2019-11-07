@@ -337,4 +337,3 @@ def get_sky_grid_scale(sky_error=0.0, Fermi=False, upscale=False,
 	if upscale: scale = rayleigh.interval(2 * containment - 1)[-1]
 	else: scale = 1.0
         return scale * sky_error
->>>>>>> pygrb_skyerror_fix
