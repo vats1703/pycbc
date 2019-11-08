@@ -117,7 +117,7 @@ def get_coh_PTF_files(cp, ifos, run_dir, bank_veto=False, summary_files=False):
             # summary.js file
             shutil.copy("%s/lalapps/src/ring/coh_PTF_config_files/"
                         "coh_PTF_html_summary.js" % lalDir, "%s" % run_dir)
-            summary_js_url = "file://localhost%s/coh_PTF_html_summary.js"
+            summary_js_url = "file://localhost%s/coh_PTF_html_summary.js" \
                              % run_dir
             summary_js = File(ifos, "coh_PTF_html_summary_js", sci_seg,
                               file_url=summary_js_url)
@@ -127,7 +127,7 @@ def get_coh_PTF_files(cp, ifos, run_dir, bank_veto=False, summary_files=False):
             # summary.css file
             shutil.copy("%s/lalapps/src/ring/coh_PTF_config_files/"
                         "coh_PTF_html_summary.css" % lalDir, "%s" % run_dir)
-            summary_css_url = "file://localhost%s/coh_PTF_html_summary.css"
+            summary_css_url = "file://localhost%s/coh_PTF_html_summary.css" \
                               % run_dir
             summary_css = File(ifos, "coh_PTF_html_summary_css", sci_seg,
                                file_url=summary_css_url)
