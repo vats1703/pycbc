@@ -281,7 +281,7 @@ def make_gating_node(workflow, datafind_files, outdir=None, tags=None):
     return condition_strain_nodes, condition_strain_outs
 
 
-def get_sky_grid_scale(sky_error=0.0, Fermi=False, upscale=False,
+def get_sky_grid_scale(sky_error=0.0, Fermi=True, upscale=False,
                        core_sigma=3.6, core_frac=0.98, tail_sigma=29.6,
                        containment=0.9):
     """

@@ -307,7 +307,7 @@ def setup_matchedfltr_dax_generated_multi(workflow, science_segs, datafind_outs,
             cp.set('inspiral', 'sky-error',
                    str(get_sky_grid_scale(float(cp.get('workflow',
                                                        'sky-error')),
-                                          sigma_sys=0.0)))
+                                          Fermi=False)))
         cp.set('inspiral', 'trigger-time', cp.get('workflow', 'trigger-time'))
         cp.set('inspiral', 'block-duration',
                str(abs(science_segs[ifos[0]][0]) - \
