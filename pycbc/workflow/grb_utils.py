@@ -319,6 +319,7 @@ def get_sky_grid_scale(sky_error=0.0, Fermi=True, upscale=False,
         Sky error radius in degrees.
     """
     if Fermi:
+        precision = 1000
         r = np.linspace(sky_error*0.5, sky_error*4.0, precision)
         sky_error /= np.sqrt(-2 * np.log(0.32))
         tail_frac = 1.0 - core_frac
